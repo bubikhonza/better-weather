@@ -1,0 +1,182 @@
+
+
+
+<html>
+    <head>
+        <title>BetterWeather</title>
+        <meta charset="utf-8" />
+        <link rel="icon" type="image/x-icon" href="./favicon.png" />
+        <link
+            rel="stylesheet"
+            href="https://pyscript.net/latest/pyscript.css"
+        />
+        <script defer src="https://pyscript.net/latest/pyscript.js"></script>
+        <link rel="stylesheet" href="./assets/css/examples.css" />
+    </head>
+    <body>
+        <nav class="navbar" style="background-color: #000000">
+            <div class="app-header">
+                <a class="title" href="" style="color: #f0ab3c">BetterWeather</a>
+            </div>
+        </nav>
+        <section class="pyscript">
+            <div>
+                <br />
+                <input
+                    id="coordinations"
+                    class="py-input"
+                    type="text"
+                    placeholder="3.7484, 25.2511"
+                />
+                <button
+                    id="run_weather"
+                    class="py-button"
+                    type="submit"
+                    py-click="get_weather()"
+                >
+                    get weather
+                </button>
+            </div>
+            <div id="chart1"></div>
+                <py-config>
+                    packages = [
+                      "matplotlib",
+                      "pandas"
+                    ]
+                    plugins = [
+                      "https://pyscript.net/latest/plugins/python/py_tutor.py"
+                    ]
+                </py-config>
+                
+                <script type="py">
+                    from pyodide.http import pyfetch
+                    import asyncio
+                    import pandas as pd
+                    import matplotlib.pyplot as plt
+                    
+                    import matplotlib.patches as mpatches
+                    import matplotlib.tri as tri
+                    import numpy as np
+                    from datetime import datetime
+                        
+                    async def init_graph(lat, lon):
+                        response = await pyfetch(url=f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&hourly=temperature_2m,precipitation,rain,showers,snowfall,snow_depth,weather_code&past_days=7", method="GET")
+                    
+                        data = await response.json()
+                        hourly_dataframe = pd.DataFrame(data=data["hourly"])
+                        hourly_dataframe['time'] = pd.to_datetime(hourly_dataframe['time'], format = '%Y-%m-%d %H:%M')
+                        fig, ax = plt.subplots()
+                        
+                        hourly_dataframe.plot(x="time", y="temperature_2m", color="red", zorder=10,ax=ax, figsize=(15,10), legend=False)
+                        
+                        
+                        ax.set_facecolor("black")
+                        ax.axhline(y=0, color="white", linestyle="--", lw=0.5, zorder=10)
+                        ax.axvline(
+                            x=pd.to_datetime(datetime.today()),
+                            color="white",
+                            linestyle="-",
+                            lw=1,
+                            zorder=10,
+                        )
+                    
+                        ax.text(
+                            pd.to_datetime(datetime.today()),
+                            0.15,
+                            "today",
+                            color="white",
+                            ha="right",
+                            va="top",
+                            rotation=90,
+                            transform=ax.get_xaxis_transform(),
+                            zorder=10,
+                        )
+                        
+                    
+                        for idx, df in hourly_dataframe.iterrows():
+                            if df["weather_code"] in [0, 1, 2, 3]:
+                                # clear, Mainly clear, partly cloudy, and overcast
+                                pass
+                    
+                            elif df["weather_code"] in [45, 48]:
+                                # Fog and depositing rime fog
+                                pass
+                    
+                            elif df["weather_code"] in [51, 53, 55]:
+                                # Drizzle: Light, moderate, and dense intensity
+                                ax.axvline(x=df["time"], color="blue", linestyle="-", lw=5)
+                    
+                            elif df["weather_code"] in [56, 57]:
+                                # 	Freezing Drizzle: Light and dense intensity
+                                ax.axvline(x=df["time"], color="#27CECA", linestyle="-", lw=5)
+                    
+                            elif df["weather_code"] in [61, 63, 65]:
+                                # Rain: Slight, moderate and heavy intensity
+                                ax.axvline(x=df["time"], color="blue", linestyle="-", lw=5)
+                            elif df["weather_code"] in [66, 67]:
+                                # Freezing Rain: Light and heavy intensity
+                                ax.axvline(x=df["time"], color="#27CECA", linestyle="-", lw=5)
+                            elif df["weather_code"] in [71]:
+                                # Snow fall: Slight, moderate, and heavy intensity
+                                ax.axvline(x=df["time"], color="#B8FDCD", linestyle="-", lw=5)
+                            elif df["weather_code"] in [73]:
+                                # Snow fall: Slight, moderate, and heavy intensity
+                                ax.axvline(x=df["time"], color="#42DC71", linestyle="-", lw=5)
+                            elif df["weather_code"] in [75]:
+                                # Snow fall: Slight, moderate, and heavy intensity
+                                ax.axvline(x=df["time"], color="#007624", linestyle="-", lw=5)
+                            elif df["weather_code"] in [77]:
+                                # Snow grains
+                                ax.axvline(x=df["time"], color="#B8FDCD", linestyle="-", lw=5)
+                            elif df["weather_code"] in [80, 81, 82]:
+                                # Rain showers: Slight, moderate, and violent
+                                ax.axvline(x=df["time"], color="blue", linestyle="-", lw=5)
+                            elif df["weather_code"] in [85, 86]:
+                                # Snow showers slight and heavy
+                                ax.axvline(x=df["time"], color="#B8FDCD", linestyle="-", lw=5)
+                            elif df["weather_code"] in [95, 96, 99]:
+                                # Snow showers slight and heavy
+                                ax.axvline(x=df["time"], color="yellow", linestyle="-", lw=5)
+                        
+                        
+                        red = mpatches.Patch(color="red", label="Temperature")
+                        snow_one = mpatches.Patch(color="#B8FDCD", label="Light snowfall")
+                        snow_two = mpatches.Patch(color="#42DC71", label="Moderate snowfall")
+                        snow_three = mpatches.Patch(color="#007624", label="Heavy snowfall")
+                        blue_patch = mpatches.Patch(color="blue", label="Rain")
+                        blue_patch_two = mpatches.Patch(color="#27CECA", label="Freezing rain")
+                        black_patch = mpatches.Patch(color="yellow", label="STORM")
+                    
+                        fig.legend(
+                            handles=[
+                                red,
+                                snow_one,
+                                snow_two,
+                                snow_three,
+                                blue_patch,
+                                blue_patch_two,
+                                black_patch,
+                            ],
+                            loc="upper left",
+                            prop={"size": 10},
+                        )
+                        pyscript.write("chart1",fig)
+                   
+                    def get_weather():
+                        try:
+                            coordinates = str(Element('coordinations').element.value)
+                            coordinates = coordinates.replace("N","")
+                            coordinates = coordinates.replace("E", "")
+                            coordinates = [c.strip() for c in coordinates.split(',')]
+                            if len(coordinates)==2:
+                                asyncio.ensure_future(init_graph(float(coordinates[0]), float(coordinates[1])))
+                            else:
+                                raise Exception
+                        except Exception:
+                            display("Must be in correct format, eg. 63.74849802149431, 25.250721248876367  OR    49.9879686N, 14.8422400E", target="chart1")
+
+                    
+                </script>
+        </section>
+    </body>
+</html>
